@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ekombi | Single-Dance QTC Viewer | Global Movement Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a24;
+      --surface: #1e1e2a;
+      --surface-hover: #252532;
+      
+      --text-primary: #f5f5f0;
+      --text-secondary: #b8b8b0;
+      --text-muted: #7a7a72;
+      
+      --accent-earth: #c4956a;
+      --accent-ocean: #6b9dad;
+      --accent-terracotta: #c17f59;
+      
+      --qtc-approach: #5d9a6b;
+      --qtc-diverge: #c75a5a;
+      --qtc-stationary: #6b6b6b;
+      --qtc-cross: #d4a84b;
+      
+      --border: rgba(255,255,255,0.08);
+      --border-active: rgba(196,149,106,0.5);
+      
+      --font-display: 'Cormorant Garamond', Georgia, serif;
+      --font-body: 'Source Sans 3', -apple-system, sans-serif;
+      
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 300px;
+      grid-template-rows: auto minmax(0, 1fr) 80px;
+      grid-template-areas:
+        "header header header"
+        "points body views"
+        "timeline timeline timeline";
+      gap: 1px;
+      background: var(--border);
+    }
+
+    /* Header */
+    .header {
+      grid-area: header;
+      background: var(--bg-secondary);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-earth);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+    }
+
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb span { color: var(--text-secondary); }
+
+    .header-center { text-align: center; }
+
+    .dance-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .dance-meta {
+      font-size: 0.85rem;
+      color: var(--accent-ocean);
+    }
+
+    /* Points Panel */
+    #pointsPanel {
+      grid-area: points;
+      background: var(--bg-secondary);
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent-earth);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .joint-list, .relation-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+
+    .joint-button {
+      width: 100%;
+      text-align: left;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .joint-button:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .joint-button.active { background: var(--surface); border-color: var(--border-active); color: var(--text-primary); }
+
+    .relation-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .relation-item:hover { background: var(--surface-hover); }
+    .relation-item.active { background: var(--surface); border-color: var(--border-active); }
+
+    .qtc-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .relation-label { flex: 1; font-size: 0.8rem; color: var(--text-secondary); }
+    .relation-item.active .relation-label { color: var(--text-primary); }
+
+    .relation-hist {
+      width: 60px;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-shrink: 0;
+    }
+
+    .hist-segment { height: 100%; }
+
+    /* Body Panel */
+    #bodyPanel {
+      grid-area: body;
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #bodyCanvas { width: 100%; height: 100%; display: block; }
+
+    .dance-info-overlay {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(8px);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .overlay-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .overlay-tradition { font-size: 0.8rem; color: var(--accent-ocean); }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 100;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-earth);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 0.9rem; color: var(--text-muted); }
+
+    /* Views Panel */
+    #viewsPanel {
+      grid-area: views;
+      background: var(--bg-secondary);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .views-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-tertiary);
+      padding: 4px;
+      border-radius: var(--radius-md);
+    }
+
+    .views-tab {
+      flex: 1;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .views-tab:hover { color: var(--text-secondary); }
+    .views-tab.active { background: var(--surface); color: var(--text-primary); }
+
+    .qtc-container { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+    .qtc-strip-wrapper {
+      min-height: 140px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      position: relative;
+    }
+
+    .qtc-pair-label { font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; }
+
+    .qtc-distribution {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.7rem;
+    }
+
+    .dist-item { display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
+    .dist-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+    #qtcStripBar {
+      height: 48px;
+      display: flex;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+
+    .qtc-cell { flex: 1; min-width: 1px; }
+
+    #qtcCursor {
+      position: absolute;
+      top: 70px;
+      bottom: 40px;
+      width: 2px;
+      background: var(--text-primary);
+      box-shadow: 0 0 8px rgba(255,255,255,0.5);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .qtc-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--text-muted); }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+    #storyBox {
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      border-left: 3px solid var(--accent-earth);
+    }
+
+    #storyBox .time-marker { font-family: var(--font-display); font-weight: 600; color: var(--accent-ocean); }
+    #storyBox .joint-name { color: var(--text-primary); font-weight: 500; }
+    #storyBox .action-verb { color: var(--accent-earth); }
+
+    .motifs-container { margin-top: 8px; }
+
+    .motif-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .motif-item:hover { background: var(--surface-hover); border-color: var(--border); }
+
+    .motif-marker { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-terracotta); flex-shrink: 0; }
+    .motif-info { flex: 1; min-width: 0; }
+    .motif-label { font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .motif-time { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Timeline */
+    #timelinePanel {
+      grid-area: timeline;
+      background: var(--bg-secondary);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .transport-controls { display: flex; align-items: center; gap: 8px; }
+
+    .transport-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .transport-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+    .transport-btn.play-btn {
+      width: 48px;
+      height: 48px;
+      background: var(--accent-earth);
+      border-color: var(--accent-earth);
+      color: var(--bg-primary);
+    }
+
+    .transport-btn.play-btn:hover { background: var(--accent-terracotta); border-color: var(--accent-terracotta); }
+
+    .transport-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .transport-btn.play-btn svg { width: 18px; height: 18px; }
+
+    .timeline-track { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+    .timeline-bar {
+      position: relative;
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .timeline-progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-earth), var(--accent-terracotta));
+      border-radius: 4px;
+      position: relative;
+      pointer-events: none;
+    }
+
+    .timeline-handle {
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .timeline-motifs {
+      position: absolute;
+      top: -4px;
+      left: 0;
+      right: 0;
+      height: 16px;
+      pointer-events: none;
+    }
+
+    .motif-dot {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--accent-terracotta);
+      border-radius: 50%;
+      top: 5px;
+      transform: translateX(-50%);
+      opacity: 0.7;
+    }
+
+    .timeline-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+    .time-current { font-family: var(--font-display); font-weight: 600; color: var(--text-primary); }
+
+    .speed-control { display: flex; align-items: center; gap: 8px; }
+    .speed-label { font-size: 0.75rem; color: var(--text-muted); }
+
+    .speed-select {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+    ::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <a href="#" class="logo">GMR</a>
+        <span class="breadcrumb">Archive / Dances / <span>Single-Dance View</span></span>
+      </div>
+      <div class="header-center">
+        <div class="dance-title" id="danceTitle">Ekombi</div>
+        <div class="dance-meta" id="danceMeta">Loading...</div>
+      </div>
+      <div class="header-right"></div>
+    </header>
+
+    <section id="pointsPanel">
+      <div class="panel-section">
+        <h2 class="panel-title">The Points</h2>
+        <ul id="jointList" class="joint-list"></ul>
+      </div>
+      <div class="panel-section">
+        <h2 class="panel-title">Relations</h2>
+        <ul id="relationList" class="relation-list"></ul>
+      </div>
+    </section>
+
+    <section id="bodyPanel">
+      <canvas id="bodyCanvas"></canvas>
+      <div class="dance-info-overlay">
+        <div class="overlay-title" id="overlayTitle">Ekombi</div>
+        <div class="overlay-tradition" id="overlayTradition">Efik/Ibibio Maiden Dance</div>
+      </div>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading motion data...</div>
+      </div>
+    </section>
+
+    <section id="viewsPanel">
+      <div class="views-tabs">
+        <button class="views-tab active" data-view="qtc">QTC</button>
+        <button class="views-tab" data-view="story">Story</button>
+        <button class="views-tab" data-view="motifs">Motifs</button>
+      </div>
+
+      <div class="qtc-container" id="qtcView">
+        <div class="qtc-strip-wrapper">
+          <div class="qtc-pair-label" id="qtcPairLabel">L Hand ↔ Head</div>
+          <div class="qtc-distribution" id="qtcDistribution"></div>
+          <div id="qtcStripBar"></div>
+          <div id="qtcCursor"></div>
+          <div class="qtc-legend">
+            <div class="legend-item"><span class="legend-swatch" style="background: var(--qtc-approach);"></span><span>Approach</span></div>
+            <div class="legend-item"><span class="legend-swatch" style="background: var(--qtc-diverge);"></span><span>Diverge</span></div>
+            <div class="legend-item"><span class="legend-swatch" style="background: var(--qtc-stationary);"></span><span>Stationary</span></div>
+            <div class="legend-item"><span class="legend-swatch" style="background: var(--qtc-cross);"></span><span>Cross</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="storyBox">
+        <span class="time-marker">0.00s</span> — Select a relation and press play to see motion analysis.
+      </div>
+
+      <div class="motifs-container" id="motifsView" style="display: none;">
+        <div id="motifsList"></div>
+      </div>
+    </section>
+
+    <section id="timelinePanel">
+      <div class="transport-controls">
+        <button class="transport-btn" id="skipBackBtn" title="Skip to start">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/></svg>
+        </button>
+        <button class="transport-btn play-btn" id="playBtn" title="Play/Pause">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="transport-btn" id="skipForwardBtn" title="Skip to end">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm8.5-6v6h2V6h-2v6z"/></svg>
+        </button>
+      </div>
+
+      <div class="timeline-track">
+        <div class="timeline-bar" id="timelineBar">
+          <div class="timeline-motifs" id="timelineMotifs"></div>
+          <div class="timeline-progress" id="timelineProgress" style="width: 0%;"><div class="timeline-handle"></div></div>
+        </div>
+        <div class="timeline-labels">
+          <span class="time-current" id="timeCurrent">0:00.0</span>
+          <span id="timeTotal">0:00.0</span>
+        </div>
+      </div>
+
+      <div class="speed-control">
+        <span class="speed-label">Speed</span>
+        <select class="speed-select" id="speedSelect">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const QTC_COLORS = {
+      '+0': 'var(--qtc-approach)',
+      '0-': 'var(--qtc-diverge)',
+      '00': 'var(--qtc-stationary)',
+      '0c': 'var(--qtc-cross)'
+    };
+
+    const QTC_RAW_COLORS = {
+      '+0': '#5d9a6b',
+      '0-': '#c75a5a',
+      '00': '#6b6b6b',
+      '0c': '#d4a84b'
+    };
+
+    let danceData = null;
+    let activeJoint = 'l_hand';
+    let activePairId = 'l_hand-head';
+    let currentTime = 0;
+    let isPlaying = false;
+    let playbackSpeed = 1;
+    let lastTimestamp = null;
+
+    // DOM elements
+    const elements = {
+      jointList: document.getElementById('jointList'),
+      relationList: document.getElementById('relationList'),
+      qtcStripBar: document.getElementById('qtcStripBar'),
+      qtcCursor: document.getElementById('qtcCursor'),
+      qtcPairLabel: document.getElementById('qtcPairLabel'),
+      qtcDistribution: document.getElementById('qtcDistribution'),
+      storyBox: document.getElementById('storyBox'),
+      motifsList: document.getElementById('motifsList'),
+      timelineMotifs: document.getElementById('timelineMotifs'),
+      timelineBar: document.getElementById('timelineBar'),
+      timelineProgress: document.getElementById('timelineProgress'),
+      timeCurrent: document.getElementById('timeCurrent'),
+      timeTotal: document.getElementById('timeTotal'),
+      playBtn: document.getElementById('playBtn'),
+      playIcon: document.getElementById('playIcon'),
+      speedSelect: document.getElementById('speedSelect'),
+      bodyCanvas: document.getElementById('bodyCanvas'),
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      danceTitle: document.getElementById('danceTitle'),
+      danceMeta: document.getElementById('danceMeta'),
+      overlayTitle: document.getElementById('overlayTitle'),
+      overlayTradition: document.getElementById('overlayTradition')
+    };
+
+    const ctx = elements.bodyCanvas.getContext('2d');
+
+    // Load data and initialize
+    async function init() {
+      try {
+        const response = await fetch('ekombi_full_data.json');
+        danceData = await response.json();
+        
+        elements.danceTitle.textContent = danceData.title;
+        elements.danceMeta.textContent = `${danceData.tradition} • ${danceData.region} • Performed by ${danceData.performer}`;
+        elements.overlayTitle.textContent = danceData.title;
+        elements.overlayTradition.textContent = `${danceData.tradition} Maiden Dance`;
+        elements.timeTotal.textContent = formatTime(danceData.duration);
+        
+        buildJointList();
+        setActiveJoint('l_hand');
+        buildQTCStrip();
+        buildMotifsList();
+        buildTimelineMotifs();
+        resizeCanvas();
+        
+        elements.loadingOverlay.style.display = 'none';
+        
+        setupEventListeners();
+        requestAnimationFrame(loop);
+        
+      } catch (error) {
+        console.error('Failed to load dance data:', error);
+        elements.loadingOverlay.querySelector('.loading-text').textContent = 'Error loading data';
+      }
+    }
+
+    function setupEventListeners() {
+      window.addEventListener('resize', resizeCanvas);
+      elements.playBtn.addEventListener('click', togglePlay);
+      
+      document.getElementById('skipBackBtn').addEventListener('click', () => {
+        currentTime = 0;
+        updateAll();
+      });
+      
+      document.getElementById('skipForwardBtn').addEventListener('click', () => {
+        currentTime = danceData.duration;
+        updateAll();
+      });
+      
+      elements.timelineBar.addEventListener('click', (e) => {
+        const rect = elements.timelineBar.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        currentTime = Math.max(0, Math.min(danceData.duration, pct * danceData.duration));
+        updateAll();
+      });
+      
+      elements.speedSelect.addEventListener('change', (e) => {
+        playbackSpeed = parseFloat(e.target.value);
+      });
+      
+      document.querySelectorAll('.views-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.views-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          const view = tab.dataset.view;
+          document.getElementById('qtcView').style.display = view === 'qtc' || view === 'story' ? 'flex' : 'none';
+          elements.storyBox.style.display = view === 'qtc' || view === 'story' ? 'block' : 'none';
+          document.getElementById('motifsView').style.display = view === 'motifs' ? 'block' : 'none';
+        });
+      });
+    }
+
+    function buildJointList() {
+      elements.jointList.innerHTML = '';
+      danceData.joints.forEach(joint => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.className = 'joint-button';
+        btn.textContent = danceData.joint_display_names[joint];
+        btn.dataset.joint = joint;
+        btn.addEventListener('click', () => setActiveJoint(joint));
+        li.appendChild(btn);
+        elements.jointList.appendChild(li);
+      });
+    }
+
+    function setActiveJoint(joint) {
+      activeJoint = joint;
+      document.querySelectorAll('.joint-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.joint === joint);
+      });
+      buildRelationList();
+    }
+
+    function buildRelationList() {
+      elements.relationList.innerHTML = '';
+      
+      const relations = danceData.qtc_pairs.filter(
+        p => p.joint_a === activeJoint || p.joint_b === activeJoint
+      );
+      
+      relations.forEach(pair => {
+        const li = document.createElement('li');
+        li.className = 'relation-item';
+        li.dataset.pairId = pair.pair_id;
+        
+        const indicator = document.createElement('div');
+        indicator.className = 'qtc-indicator';
+        indicator.dataset.pairId = pair.pair_id;
+        
+        const label = document.createElement('span');
+        label.className = 'relation-label';
+        label.textContent = pair.label;
+        
+        const hist = document.createElement('div');
+        hist.className = 'relation-hist';
+        const dist = pair.distribution;
+        hist.innerHTML = `
+          <div class="hist-segment" style="background: ${QTC_RAW_COLORS['+0']}; width: ${dist.approach * 100}%;"></div>
+          <div class="hist-segment" style="background: ${QTC_RAW_COLORS['0-']}; width: ${dist.diverge * 100}%;"></div>
+          <div class="hist-segment" style="background: ${QTC_RAW_COLORS['00']}; width: ${dist.stationary * 100}%;"></div>
+          <div class="hist-segment" style="background: ${QTC_RAW_COLORS['0c']}; width: ${dist.cross * 100}%;"></div>
+        `;
+        
+        li.appendChild(indicator);
+        li.appendChild(label);
+        li.appendChild(hist);
+        
+        li.addEventListener('click', () => {
+          activePairId = pair.pair_id;
+          updateRelationSelection();
+          buildQTCStrip();
+          updateAll();
+        });
+        
+        elements.relationList.appendChild(li);
+      });
+      
+      updateRelationSelection();
+    }
+
+    function updateRelationSelection() {
+      document.querySelectorAll('.relation-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.pairId === activePairId);
+      });
+      
+      const pair = danceData.qtc_pairs.find(p => p.pair_id === activePairId);
+      if (pair) {
+        elements.qtcPairLabel.textContent = pair.label;
+        
+        const dist = pair.distribution;
+        elements.qtcDistribution.innerHTML = `
+          <div class="dist-item"><div class="dist-dot" style="background: ${QTC_RAW_COLORS['+0']};"></div>${(dist.approach * 100).toFixed(0)}%</div>
+          <div class="dist-item"><div class="dist-dot" style="background: ${QTC_RAW_COLORS['0-']};"></div>${(dist.diverge * 100).toFixed(0)}%</div>
+          <div class="dist-item"><div class="dist-dot" style="background: ${QTC_RAW_COLORS['00']};"></div>${(dist.stationary * 100).toFixed(0)}%</div>
+          <div class="dist-item"><div class="dist-dot" style="background: ${QTC_RAW_COLORS['0c']};"></div>${(dist.cross * 100).toFixed(0)}%</div>
+        `;
+      }
+    }
+
+    function buildQTCStrip() {
+      const sequence = danceData.qtc_sequences[activePairId];
+      if (!sequence) return;
+      
+      elements.qtcStripBar.innerHTML = '';
+      
+      // Sample for display
+      const sampleRate = Math.max(1, Math.floor(sequence.length / 400));
+      
+      for (let i = 0; i < sequence.length; i += sampleRate) {
+        const cell = document.createElement('div');
+        cell.className = 'qtc-cell';
+        cell.style.background = QTC_RAW_COLORS[sequence[i].state] || QTC_RAW_COLORS['00'];
+        elements.qtcStripBar.appendChild(cell);
+      }
+    }
+
+    function buildMotifsList() {
+      elements.motifsList.innerHTML = '';
+      
+      danceData.sam_motifs.forEach(motif => {
+        const item = document.createElement('div');
+        item.className = 'motif-item';
+        item.innerHTML = `
+          <div class="motif-marker"></div>
+          <div class="motif-info">
+            <div class="motif-label">${motif.label}</div>
+            <div class="motif-time">${formatTime(motif.start_t)} – ${formatTime(motif.end_t)}</div>
+          </div>
+        `;
+        
+        item.addEventListener('click', () => {
+          currentTime = motif.start_t;
+          activePairId = motif.pair_id;
+          const pair = danceData.qtc_pairs.find(p => p.pair_id === motif.pair_id);
+          if (pair) setActiveJoint(pair.joint_a);
+          buildQTCStrip();
+          updateAll();
+        });
+        
+        elements.motifsList.appendChild(item);
+      });
+    }
+
+    function buildTimelineMotifs() {
+      elements.timelineMotifs.innerHTML = '';
+      
+      danceData.sam_motifs.forEach(motif => {
+        const dot = document.createElement('div');
+        dot.className = 'motif-dot';
+        dot.style.left = `${(motif.start_t / danceData.duration) * 100}%`;
+        dot.title = motif.label;
+        elements.timelineMotifs.appendChild(dot);
+      });
+    }
+
+    // Canvas rendering
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      elements.bodyCanvas.width = elements.bodyCanvas.clientWidth * dpr;
+      elements.bodyCanvas.height = elements.bodyCanvas.clientHeight * dpr;
+      ctx.scale(dpr, dpr);
+      updateSkeletonAtTime(currentTime);
+    }
+
+    function getFrameAtTime(t) {
+      if (!danceData || !danceData.frames.length) return null;
+      
+      // Account for sample rate
+      const sampleRate = danceData.sample_rate || 1;
+      const frameIndex = Math.min(
+        Math.floor((t * danceData.fps) / sampleRate),
+        danceData.frames.length - 1
+      );
+      
+      return danceData.frames[Math.max(0, frameIndex)];
+    }
+
+    function updateSkeletonAtTime(t) {
+      const w = elements.bodyCanvas.clientWidth;
+      const h = elements.bodyCanvas.clientHeight;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      // Draw subtle grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      
+      const frame = getFrameAtTime(t);
+      if (!frame) return;
+      
+      // Transform normalized coordinates to canvas space
+      // Captury uses: X = left/right, Y = up/down, Z = front/back
+      // Canvas: we'll show front view (X horizontal, Y vertical)
+      const scale = Math.min(w, h) * 0.7;
+      const offsetX = w / 2;
+      const offsetY = h * 0.55;
+      
+      const positions = {};
+      for (const [joint, pos] of Object.entries(frame.joints)) {
+        positions[joint] = {
+          x: offsetX + pos.x * scale,
+          y: offsetY - pos.y * scale  // Invert Y for canvas
+        };
+      }
+      
+      // Bone connections
+      const bones = [
+        ['pelvis', 'spine_mid'],
+        ['spine_mid', 'sternum'],
+        ['sternum', 'head'],
+        ['sternum', 'l_elbow'],
+        ['l_elbow', 'l_hand'],
+        ['sternum', 'r_elbow'],
+        ['r_elbow', 'r_hand'],
+        ['pelvis', 'l_foot'],
+        ['pelvis', 'r_foot']
+      ];
+      
+      // Draw bones
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 2;
+      bones.forEach(([a, b]) => {
+        const p1 = positions[a];
+        const p2 = positions[b];
+        if (p1 && p2) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      });
+      
+      // Draw active pair connection
+      const pair = danceData.qtc_pairs.find(p => p.pair_id === activePairId);
+      if (pair) {
+        const p1 = positions[pair.joint_a];
+        const p2 = positions[pair.joint_b];
+        if (p1 && p2) {
+          const currentState = getCurrentStateForPair(activePairId, t);
+          const color = QTC_RAW_COLORS[currentState.state] || QTC_RAW_COLORS['00'];
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 12;
+          
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+          
+          ctx.shadowBlur = 0;
+        }
+      }
+      
+      // Draw joints
+      Object.entries(positions).forEach(([name, pos]) => {
+        const isActive = pair && (name === pair.joint_a || name === pair.joint_b);
+        
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, isActive ? 8 : 5, 0, Math.PI * 2);
+        
+        if (isActive) {
+          const currentState = getCurrentStateForPair(activePairId, t);
+          const color = QTC_RAW_COLORS[currentState.state] || QTC_RAW_COLORS['00'];
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 12;
+        } else {
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.shadowBlur = 0;
+        }
+        
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        if (isActive) {
+          ctx.font = '11px "Source Sans 3", sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.textAlign = 'center';
+          ctx.fillText(danceData.joint_display_names[name], pos.x, pos.y - 14);
+        }
+      });
+    }
+
+    function getCurrentStateForPair(pairId, t) {
+      const sequence = danceData.qtc_sequences[pairId];
+      if (!sequence || !sequence.length) return { t: 0, state: '00' };
+      
+      // Find the state at time t
+      for (let i = sequence.length - 1; i >= 0; i--) {
+        if (sequence[i].t <= t) {
+          return sequence[i];
+        }
+      }
+      return sequence[0];
+    }
+
+    function updateQtcCursor() {
+      const pct = currentTime / danceData.duration;
+      const stripWidth = elements.qtcStripBar.clientWidth;
+      elements.qtcCursor.style.left = `${12 + pct * stripWidth}px`;
+    }
+
+    function updateStoryBox() {
+      const pair = danceData.qtc_pairs.find(p => p.pair_id === activePairId);
+      if (!pair) return;
+      
+      const currentState = getCurrentStateForPair(activePairId, currentTime);
+      const jointA = danceData.joint_display_names[pair.joint_a];
+      const jointB = danceData.joint_display_names[pair.joint_b];
+      
+      const stateDescriptions = {
+        '+0': { verb: 'moves closer to', desc: 'approaching' },
+        '0-': { verb: 'moves away from', desc: 'diverging' },
+        '00': { verb: 'holds position relative to', desc: 'maintaining distance' },
+        '0c': { verb: 'crosses path with', desc: 'crossing' }
+      };
+      
+      const stateInfo = stateDescriptions[currentState.state] || stateDescriptions['00'];
+      
+      elements.storyBox.innerHTML = `
+        <span class="time-marker">${currentTime.toFixed(2)}s</span> — 
+        The <span class="joint-name">${jointA}</span> 
+        <span class="action-verb">${stateInfo.verb}</span> 
+        the <span class="joint-name">${jointB}</span>, 
+        ${stateInfo.desc} in the characteristic fluid motion of Ekombi.
+      `;
+    }
+
+    function updateRelationIndicators() {
+      document.querySelectorAll('.qtc-indicator').forEach(indicator => {
+        const pairId = indicator.dataset.pairId;
+        const state = getCurrentStateForPair(pairId, currentTime);
+        const color = QTC_RAW_COLORS[state.state] || QTC_RAW_COLORS['00'];
+        indicator.style.background = color;
+        indicator.style.borderColor = color;
+      });
+    }
+
+    function updateTimeline() {
+      const pct = (currentTime / danceData.duration) * 100;
+      elements.timelineProgress.style.width = `${pct}%`;
+      elements.timeCurrent.textContent = formatTime(currentTime);
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
+    }
+
+    function updateAll() {
+      updateTimeline();
+      updateQtcCursor();
+      updateSkeletonAtTime(currentTime);
+      updateStoryBox();
+      updateRelationIndicators();
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      
+      if (isPlaying) {
+        elements.playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        lastTimestamp = null;
+      } else {
+        elements.playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      }
+    }
+
+    function loop(timestamp) {
+      if (isPlaying && danceData) {
+        if (lastTimestamp === null) lastTimestamp = timestamp;
+        const deltaSec = ((timestamp - lastTimestamp) / 1000) * playbackSpeed;
+        lastTimestamp = timestamp;
+        
+        currentTime += deltaSec;
+        if (currentTime > danceData.duration) {
+          currentTime = 0;
+        }
+        
+        updateAll();
+      }
+      
+      requestAnimationFrame(loop);
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
